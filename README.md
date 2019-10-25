@@ -6,8 +6,6 @@ This is my third project on Hexlet.io
 [![Test Coverage](https://api.codeclimate.com/v1/badges/bd3744abe6a8d90b7ed3/test_coverage)](https://codeclimate.com/github/aldarg/frontend-project-lvl3/test_coverage)
 
 # RSS Feeder
+
+Open it here:
 http://aldarg.surge.sh/
-
-## Install guide
-
-## Demo
