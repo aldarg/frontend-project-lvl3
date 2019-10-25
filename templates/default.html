@@ -19,7 +19,7 @@
             </small>
           </div>
         </div>
-        <button class="btn btn-primary" id="submitBtn" disabled>Subscribe</button>
+        <button class="btn btn-primary" id="addFeed" disabled>Subscribe</button>
       </div>
       <div class="container-fluid">
         <div id="spinner" class="invisible d-flex justify-content-center">
@@ -27,26 +27,27 @@
             <span class="sr-only">Loading...</span>
           </div>
         </div>
+        <h6 id="feedsHeader" class="display-6 invisible">Feeds</h6>
         <div class="row">
-          <div class="col-5">
-            <div id="subscriptions" class="list-group"></div>
+          <div class="col-4">
+            <div id="feeds" class="list-group"></div>
           </div>
-          <div class="col-7">
-            <div id="feed" class="list-group"></div>
+          <div class="col-8">
+            <div id="posts" class="list-group"></div>
           </div>
         </div>
       </div>
     </div>
-    <div class="modal fade invisible" id="descriptionModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="postModal" tabindex="-1" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">Description</h5>
+            <h5 class="modal-title" id="modalTitle"></h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body" id="modalBody">
             ...
           </div>
           <div class="modal-footer">

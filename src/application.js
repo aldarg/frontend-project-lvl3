@@ -6,152 +6,164 @@ import isURL from 'validator/lib/isURL';
 import State from './state';
 import parseUrl from './parsers/url.parser';
 import parseContent from './parsers/content.parser';
+import { renderFeedsList, renderPostsList } from './renderers';
+
+const updatePosts = (state) => () => {
+  if (state.feeds.length === 0) {
+    return;
+  }
+
+  const promises = state.feeds.map(({ url }) => parseUrl(url));
+  Promise.all(promises)
+    .then((responses) => {
+      const newPosts = responses.map(({ content }) => parseContent(content).posts);
+      state.replacePosts(newPosts);
+    })
+    .catch((error) => {
+      console.log(error);
+    })
+    .finally(() => {
+      setTimeout(updatePosts(state), 5000);
+    });
+};
 
 export default () => {
   const state = new State();
 
   const input = document.getElementById('urlInput');
-  const submitBtn = document.getElementById('submitBtn');
-  const errorOutput = document.getElementById('errorLabel');
+  const addFeedBtn = document.getElementById('addFeed');
+  const errorLabel = document.getElementById('errorLabel');
+  const spinner = document.getElementById('spinner');
 
   input.addEventListener('input', ({ target: { value } }) => {
     if (value === '') {
-      state.inputState = 'ready';
+      state.formState = 'ready';
       return;
     }
 
     if (!isURL(value)) {
-      state.inputState = 'errorNotUrl';
+      state.formState = 'errorNotUrl';
       return;
     }
 
-    state.inputState = state.checkSubscription(value) ? 'valid' : 'errorSubscribed';
+    if (!state.checkSubscription(value)) {
+      state.formState = 'errorSubscribed';
+      return;
+    }
+
+    state.formState = 'valid';
   });
 
-  watch(state, 'inputState', () => {
-    switch (state.inputState) {
-      case 'valid':
-        submitBtn.disabled = false;
+  watch(state, 'formState', () => {
+    switch (state.formState) {
+      case 'ready':
+        input.disabled = false;
+        spinner.classList.add('invisible');
+        addFeedBtn.disabled = true;
         input.classList.remove('border', 'border-danger');
-        errorOutput.classList.add('invisible');
-        break;
-      case 'errorNotUrl':
-        submitBtn.disabled = true;
-        input.classList.add('border', 'border-danger');
-        errorOutput.classList.add('invisible');
-        break;
-      case 'errorSubscribed':
-        submitBtn.disabled = true;
-        input.classList.add('border', 'border-danger');
-        errorOutput.classList.remove('invisible');
-        errorOutput.textContent = 'Already in subscription list';
-        break;
-      case 'errorNotRss':
-        submitBtn.disabled = true;
-        input.classList.add('border', 'border-danger');
-        errorOutput.classList.remove('invisible');
-        errorOutput.textContent = 'Invalid RSS source';
-        break;
-      default:
-        submitBtn.disabled = true;
-        input.classList.remove('border', 'border-danger');
-        errorOutput.classList.add('invisible');
+        errorLabel.classList.add('invisible');
         input.value = '';
         break;
+      case 'valid':
+        addFeedBtn.disabled = false;
+        input.classList.remove('border', 'border-danger');
+        errorLabel.classList.add('invisible');
+        break;
+      case 'errorNotUrl':
+        addFeedBtn.disabled = true;
+        input.classList.add('border', 'border-danger');
+        errorLabel.classList.add('invisible');
+        break;
+      case 'errorSubscribed':
+        addFeedBtn.disabled = true;
+        input.classList.add('border', 'border-danger');
+        errorLabel.classList.remove('invisible');
+        errorLabel.textContent = 'Already in subscription list';
+        break;
+      case 'errorNotRss':
+        input.disabled = false;
+        addFeedBtn.disabled = true;
+        spinner.classList.add('invisible');
+        input.classList.add('border', 'border-danger');
+        errorLabel.classList.remove('invisible');
+        errorLabel.textContent = 'Invalid RSS source';
+        break;
+      case 'errorConnection':
+        input.disabled = false;
+        spinner.classList.add('invisible');
+        addFeedBtn.disabled = false;
+        input.classList.add('border', 'border-danger');
+        errorLabel.classList.remove('invisible');
+        errorLabel.textContent = 'Connection problems. Please, try again.';
+        break;
+      case 'loading':
+        input.disabled = true;
+        addFeedBtn.disabled = true;
+        spinner.classList.remove('invisible');
+        break;
+      default:
+        throw new Error('Uknown input state');
     }
   });
 
-  const validateContent = (data) => data.getElementsByTagName('parsererror').length > 0;
+  const isInvalidData = (data) => data.getElementsByTagName('parsererror').length > 0;
 
-  submitBtn.addEventListener('click', () => {
-    state.reloading = true;
+  addFeedBtn.addEventListener('click', () => {
+    state.formState = 'loading';
 
     parseUrl(input.value)
-      .then((data) => {
-        state.reloading = false;
-
-        if (validateContent(data)) {
-          state.inputState = 'errorNotRss';
+      .then(({ url, content }) => {
+        if (isInvalidData(content)) {
+          state.formState = 'errorNotRss';
           return;
         }
 
-        const content = parseContent(data);
-        state.addSubscription({ url: input.value, ...content });
-        state.inputState = 'ready';
+        const { feed, posts } = parseContent(content);
+        state.addFeed({ url, ...feed });
+        state.addPosts(posts);
+        state.formState = 'ready';
       })
       .catch((error) => {
         console.log(error);
+        state.formState = 'errorConnection';
       });
   });
 
-  const renderRssList = (subscriptions) => {
-    const div = document.getElementById('subscriptions');
-    div.innerHTML = '';
+  input.addEventListener('keyup', (e) => {
+    if (e.keyCode === 13 && !addFeedBtn.disabled) {
+      addFeedBtn.click();
+    }
+  });
 
-    subscriptions.forEach(({ title, description }) => {
-      const child = document.createElement('div');
-      child.classList.add('list-group-item');
-      const childTitle = document.createElement('h5');
-      childTitle.textContent = title;
-      const childDescription = document.createElement('p');
-      childDescription.textContent = description;
-      child.append(childTitle);
-      child.append(childDescription);
-      div.append(child);
-    });
-  };
+  watch(state, 'feeds', () => {
+    renderFeedsList(state.feeds);
 
-  const rssItemsAppend = (parent, items) => {
-    items.forEach(({ title, link, description }) => {
-      const child = document.createElement('div');
-      child.classList.add('list-group-item');
+    if (state.feeds.length === 1) {
+      setTimeout(updatePosts(state), 5000);
+    }
+  });
 
-      const childLink = document.createElement('a');
-      childLink.setAttribute('href', link);
-      childLink.textContent = title;
-      child.append(childLink);
+  watch(state, 'posts', () => {
+    const handleModal = (id) => (e) => {
+      e.preventDefault();
+      state.modal = { show: true, id };
+    };
+    renderPostsList(state.posts, handleModal);
+  });
 
-      const childModalBtn = document.createElement('button');
-      childModalBtn.classList.add('btn', 'btn-primary', 'btn-sm');
-      childModalBtn.textContent = 'Info';
-      childModalBtn.addEventListener('click', () => {
-        state.modal = description;
-      });
-      child.append(childModalBtn);
-
-      parent.append(child);
-    });
-  };
-
-  const renderRssContent = (subscriptions) => {
-    const div = document.getElementById('feed');
-    div.innerHTML = '';
-
-    subscriptions.forEach(({ items }) => rssItemsAppend(div, items));
-  };
-
-  watch(state, 'subscriptions', () => {
-    renderRssList(state.subscriptions);
-    renderRssContent(state.subscriptions);
+  $('#postModal').on('hidden.bs.modal', () => {
+    state.modal = { show: false };
   });
 
   watch(state, 'modal', () => {
-    if (state.modal === '') {
+    if (!state.modal.show) {
       return;
     }
 
-    const modalDiv = document.getElementById('descriptionModal');
-    modalDiv.classList.remove('invisible');
-    $(modalDiv).find('.modal-body').text(state.modal);
-    $(modalDiv).modal('toggle');
-  });
+    const { title, description } = state.getPostById(state.modal.id);
 
-  watch(state, 'reloading', () => {
-    const spinnerEl = document.getElementById('spinner');
-    if (state.reloading) {
-      spinnerEl.classList.remove('invisible');
-    } else {
-      spinnerEl.classList.add('invisible');
-    }
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').textContent = description;
+    $('#postModal').modal();
   });
 };
