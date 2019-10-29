@@ -1,11 +1,20 @@
 import _ from 'lodash';
 
+const isInvalidData = (data) => data.getElementsByTagName('parsererror').length > 0;
+
 const getFirstTagContent = (dom, tagName) => {
   const node = dom.getElementsByTagName(tagName)[0];
   return node ? node.textContent : null;
 };
 
-export default (dom) => {
+export default (data) => {
+  const dom = new DOMParser().parseFromString(data, 'text/xml');
+
+  const error = isInvalidData(dom);
+  if (error) {
+    return [null, null, error];
+  }
+
   const title = getFirstTagContent(dom, 'title');
   const description = getFirstTagContent(dom, 'description');
   const feedId = _.uniqueId('feed_');
@@ -27,12 +36,13 @@ export default (dom) => {
     };
   });
 
-  return {
-    feed: {
+  return [
+    {
       id: feedId,
       title,
       description,
     },
     posts,
-  };
+    false,
+  ];
 };

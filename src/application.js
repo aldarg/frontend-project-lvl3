@@ -2,21 +2,30 @@ import 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import $ from 'jquery';
 import { watch } from 'melanke-watchjs';
+import axios from 'axios';
 import isURL from 'validator/lib/isURL';
-import State from './state';
-import parseUrl from './parsers/url.parser';
+import State from './State';
 import parseContent from './parsers/content.parser';
 import { renderFeedsList, renderPostsList } from './renderers';
+
+const rssProxy = 'http://cors-anywhere.herokuapp.com/';
 
 const updatePosts = (state) => () => {
   if (state.feeds.length === 0) {
     return;
   }
 
-  const promises = state.feeds.map(({ url }) => parseUrl(url));
+  const promises = state.feeds.map(({ url }) => axios({
+    method: 'get',
+    url: `${rssProxy}${url}`,
+  }));
+
   Promise.all(promises)
     .then((responses) => {
-      const newPosts = responses.map(({ content }) => parseContent(content).posts);
+      const newPosts = responses.map(({ data }) => {
+        const [, posts] = parseContent(data);
+        return posts;
+      });
       state.replacePosts(newPosts);
     })
     .catch((error) => {
@@ -31,7 +40,8 @@ export default () => {
   const state = new State();
 
   const input = document.getElementById('urlInput');
-  const addFeedBtn = document.getElementById('addFeed');
+  const addFeedForm = document.getElementById('addFeedForm');
+  const addFeedBtn = document.getElementById('addFeedBtn');
   const errorLabel = document.getElementById('errorLabel');
   const spinner = document.getElementById('spinner');
 
@@ -46,7 +56,7 @@ export default () => {
       return;
     }
 
-    if (!state.checkSubscription(value)) {
+    if (state.checkSubscription(value)) {
       state.formState = 'errorSubscribed';
       return;
     }
@@ -106,19 +116,25 @@ export default () => {
     }
   });
 
-  const isInvalidData = (data) => data.getElementsByTagName('parsererror').length > 0;
-
-  addFeedBtn.addEventListener('click', () => {
+  addFeedForm.addEventListener('submit', (e) => {
+    e.preventDefault();
     state.formState = 'loading';
 
-    parseUrl(input.value)
-      .then(({ url, content }) => {
-        if (isInvalidData(content)) {
+    const url = new FormData(e.target).get('url');
+    const query = {
+      method: 'get',
+      url: `${rssProxy}${url}`,
+    };
+
+    axios(query)
+      .then(({ data }) => {
+        const [feed, posts, error] = parseContent(data);
+
+        if (error) {
           state.formState = 'errorNotRss';
           return;
         }
 
-        const { feed, posts } = parseContent(content);
         state.addFeed({ url, ...feed });
         state.addPosts(posts);
         state.formState = 'ready';
@@ -127,12 +143,6 @@ export default () => {
         console.log(error);
         state.formState = 'errorConnection';
       });
-  });
-
-  input.addEventListener('keyup', (e) => {
-    if (e.keyCode === 13 && !addFeedBtn.disabled) {
-      addFeedBtn.click();
-    }
   });
 
   watch(state, 'feeds', () => {

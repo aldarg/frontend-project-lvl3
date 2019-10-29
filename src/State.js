@@ -1,12 +1,6 @@
 import _ from 'lodash';
 
-const pubDateComparator = ({ date }) => {
-  if (!date) {
-    return 0;
-  }
-
-  return -Date.parse(date);
-};
+const sortPostsByDateDesc = (posts) => _.orderBy(posts, ({ date }) => Date.parse(date), ['desc']);
 
 export default class {
   constructor() {
@@ -20,7 +14,7 @@ export default class {
   }
 
   checkSubscription(url) {
-    return !this.feeds.find((item) => item.url === url);
+    return !!this.feeds.find((item) => item.url === url);
   }
 
   addFeed(feed) {
@@ -28,13 +22,13 @@ export default class {
   }
 
   addPosts(posts) {
-    posts.forEach((post) => this.posts.push(post));
-    const sortedPosts = _.sortBy(this.posts, pubDateComparator);
+    this.posts.push(...posts);
+    const sortedPosts = sortPostsByDateDesc(this.posts);
     this.posts = sortedPosts;
   }
 
   replacePosts(posts) {
-    const sortedPosts = _.sortBy(_.flatten(posts), pubDateComparator);
+    const sortedPosts = sortPostsByDateDesc(_.flatten(posts));
     this.posts = sortedPosts;
   }
 

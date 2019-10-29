@@ -9,17 +9,19 @@
     <div id="point">
       <div class="jumbotron">
         <h1 class="display-4">RSS Reader</h1>
-        <div class="row">
-          <div class="form-group col-8">
-            <input type="text" class="form-control" id="urlInput" placeholder="Enter RSS-feed">
+        <form id="addFeedForm">
+          <div class="row">
+            <div class="form-group col-8">
+              <input type="text" class="form-control" id="urlInput" name="url" placeholder="Enter RSS-feed">
+            </div>
+            <div class="col-4">
+              <small id="errorLabel" class="text-danger invisible">
+                Already in subscription list
+              </small>
+            </div>
           </div>
-          <div class="col-4">
-            <small id="errorLabel" class="text-danger invisible">
-              Already in subscription list
-            </small>
-          </div>
-        </div>
-        <button class="btn btn-primary" id="addFeed" disabled>Subscribe</button>
+          <button type="submit" class="btn btn-primary" id="addFeedBtn" disabled>Subscribe</button>
+        </form>
       </div>
       <div class="container-fluid">
         <div id="spinner" class="invisible d-flex justify-content-center">
