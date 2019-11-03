@@ -13,7 +13,7 @@ export default class {
     };
   }
 
-  checkSubscription(url) {
+  isSubscribed(url) {
     return !!this.feeds.find((item) => item.url === url);
   }
 

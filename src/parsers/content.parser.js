@@ -12,7 +12,7 @@ export default (data) => {
 
   const error = isInvalidData(dom);
   if (error) {
-    return [null, null, error];
+    return null;
   }
 
   const title = getFirstTagContent(dom, 'title');
@@ -36,13 +36,10 @@ export default (data) => {
     };
   });
 
-  return [
-    {
-      id: feedId,
-      title,
-      description,
-    },
-    posts,
-    false,
-  ];
+  return {
+    id: feedId,
+    title,
+    description,
+    posts
+  };
 };

@@ -23,17 +23,30 @@ const updatePosts = (state) => () => {
   Promise.all(promises)
     .then((responses) => {
       const newPosts = responses.map(({ data }) => {
-        const [, posts] = parseContent(data);
+        const { posts } = parseContent(data);
         return posts;
       });
       state.replacePosts(newPosts);
     })
-    .catch((error) => {
-      console.log(error);
-    })
     .finally(() => {
       setTimeout(updatePosts(state), 5000);
     });
+};
+
+const getNextFormState = (state, inputText) => {
+  if (inputText === '') {
+    return 'ready';
+  }
+
+  if (!isURL(inputText)) {
+    return 'errorNotUrl';
+  }
+
+  if (state.isSubscribed(inputText)) {
+    return 'errorSubscribed';
+  }
+
+  return 'valid';
 };
 
 export default () => {
@@ -46,22 +59,7 @@ export default () => {
   const spinner = document.getElementById('spinner');
 
   input.addEventListener('input', ({ target: { value } }) => {
-    if (value === '') {
-      state.formState = 'ready';
-      return;
-    }
-
-    if (!isURL(value)) {
-      state.formState = 'errorNotUrl';
-      return;
-    }
-
-    if (state.checkSubscription(value)) {
-      state.formState = 'errorSubscribed';
-      return;
-    }
-
-    state.formState = 'valid';
+    state.formState = getNextFormState(state, value);
   });
 
   watch(state, 'formState', () => {
@@ -120,7 +118,8 @@ export default () => {
     e.preventDefault();
     state.formState = 'loading';
 
-    const url = new FormData(e.target).get('url');
+    const formData = new FormData(e.target);
+    const url = formData.get('url');
     const query = {
       method: 'get',
       url: `${rssProxy}${url}`,
@@ -128,14 +127,15 @@ export default () => {
 
     axios(query)
       .then(({ data }) => {
-        const [feed, posts, error] = parseContent(data);
+        const feed = parseContent(data);
 
-        if (error) {
+        if (!feed) {
           state.formState = 'errorNotRss';
           return;
         }
 
-        state.addFeed({ url, ...feed });
+        const { id, title, description, posts } = feed;
+        state.addFeed({ url, id, title, description });
         state.addPosts(posts);
         state.formState = 'ready';
       })
@@ -172,8 +172,11 @@ export default () => {
 
     const { title, description } = state.getPostById(state.modal.id);
 
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').textContent = description;
+    const modalHeader = document.getElementById('modalTitle');
+    modalHeader.textContent = title;
+    const modalBody = document.getElementById('modalBody');
+    modalBody.textContent = description;
+
     $('#postModal').modal();
   });
 };
