@@ -40,6 +40,6 @@ export default (data) => {
     id: feedId,
     title,
     description,
-    posts
+    posts,
   };
 };

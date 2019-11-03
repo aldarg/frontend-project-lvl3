@@ -134,9 +134,14 @@ export default () => {
           return;
         }
 
-        const { id, title, description, posts } = feed;
-        state.addFeed({ url, id, title, description });
-        state.addPosts(posts);
+        const { id, title, description } = feed;
+        state.addFeed({
+          url,
+          id,
+          title,
+          description,
+        });
+        state.addPosts(feed.posts);
         state.formState = 'ready';
       })
       .catch((error) => {
