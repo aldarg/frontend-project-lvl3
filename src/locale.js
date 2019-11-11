@@ -6,7 +6,6 @@ export default () => {
   i18next
     .use(LanguageDetector)
     .init({
-      debug: true,
       detection: { order: ['htmlTag'] },
       resources,
     });
