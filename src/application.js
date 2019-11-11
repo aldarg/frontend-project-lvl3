@@ -7,6 +7,7 @@ import isURL from 'validator/lib/isURL';
 import State from './State';
 import parseContent from './parsers/content.parser';
 import { renderFeedsList, renderPostsList } from './renderers';
+import getLocales from './locale';
 
 const rssProxy = 'http://cors-anywhere.herokuapp.com/';
 
@@ -51,12 +52,18 @@ const getNextFormState = (state, inputText) => {
 
 export default () => {
   const state = new State();
+  const locales = getLocales();
 
   const input = document.getElementById('urlInput');
   const addFeedForm = document.getElementById('addFeedForm');
   const addFeedBtn = document.getElementById('addFeedBtn');
   const errorLabel = document.getElementById('errorLabel');
   const spinner = document.getElementById('spinner');
+  const feedsDiv = document.getElementById('feedsHeader');
+
+  addFeedBtn.textContent = locales.element.subscribe;
+  input.placeholder = locales.element.input;
+  feedsDiv.textContent = locales.element.feeds;
 
   input.addEventListener('input', ({ target: { value } }) => {
     state.formState = getNextFormState(state, value);
@@ -86,7 +93,7 @@ export default () => {
         addFeedBtn.disabled = true;
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = 'Already in subscription list';
+        errorLabel.textContent = locales.error.subscribed;
         break;
       case 'errorNotRss':
         input.disabled = false;
@@ -94,7 +101,7 @@ export default () => {
         spinner.classList.add('invisible');
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = 'Invalid RSS source';
+        errorLabel.textContent = locales.error.source;
         break;
       case 'errorConnection':
         input.disabled = false;
@@ -102,7 +109,7 @@ export default () => {
         addFeedBtn.disabled = false;
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = 'Connection problems. Please, try again.';
+        errorLabel.textContent = locales.error.connection;
         break;
       case 'loading':
         input.disabled = true;
@@ -134,14 +141,9 @@ export default () => {
           return;
         }
 
-        const { id, title, description } = feed;
-        state.addFeed({
-          url,
-          id,
-          title,
-          description,
-        });
-        state.addPosts(feed.posts);
+        const { posts, ...feedInfo } = feed;
+        state.addFeed({ url, ...feedInfo });
+        state.addPosts(posts);
         state.formState = 'ready';
       })
       .catch((error) => {

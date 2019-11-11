@@ -7,8 +7,6 @@ install-deps:
 build:
 	rm -rf dist
 	NODE_ENV=production npx webpack
-start:
-	npx babel-node src/bin/gendiff.js
 deploy:
 	surge ./dist --domain aldarg.surge.sh
 publish:
