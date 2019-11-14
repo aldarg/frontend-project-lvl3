@@ -4,10 +4,12 @@ import $ from 'jquery';
 import { watch } from 'melanke-watchjs';
 import axios from 'axios';
 import isURL from 'validator/lib/isURL';
+import i18next from 'i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import resources from '../locales';
 import State from './State';
 import parseContent from './parsers/content.parser';
 import { renderFeedsList, renderPostsList } from './renderers';
-import getLocales from './locale';
 
 const rssProxy = 'http://cors-anywhere.herokuapp.com/';
 
@@ -51,8 +53,12 @@ const getNextFormState = (state, inputText) => {
 };
 
 export default () => {
-  const state = new State();
-  const locales = getLocales();
+  i18next
+    .use(LanguageDetector)
+    .init({
+      detection: { order: ['htmlTag'] },
+      resources,
+    });
 
   const input = document.getElementById('urlInput');
   const addFeedForm = document.getElementById('addFeedForm');
@@ -61,9 +67,11 @@ export default () => {
   const spinner = document.getElementById('spinner');
   const feedsDiv = document.getElementById('feedsHeader');
 
-  addFeedBtn.textContent = locales.element.subscribe;
-  input.placeholder = locales.element.input;
-  feedsDiv.textContent = locales.element.feeds;
+  addFeedBtn.textContent = i18next.t('elements:subscribe');
+  input.placeholder = i18next.t('elements:input');
+  feedsDiv.textContent = i18next.t('elements:feeds');
+
+  const state = new State();
 
   input.addEventListener('input', ({ target: { value } }) => {
     state.formState = getNextFormState(state, value);
@@ -93,7 +101,7 @@ export default () => {
         addFeedBtn.disabled = true;
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = locales.error.subscribed;
+        errorLabel.textContent = i18next.t('errors:subscribed');
         break;
       case 'errorNotRss':
         input.disabled = false;
@@ -101,7 +109,7 @@ export default () => {
         spinner.classList.add('invisible');
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = locales.error.source;
+        errorLabel.textContent = i18next.t('errors:source');
         break;
       case 'errorConnection':
         input.disabled = false;
@@ -109,7 +117,7 @@ export default () => {
         addFeedBtn.disabled = false;
         input.classList.add('border', 'border-danger');
         errorLabel.classList.remove('invisible');
-        errorLabel.textContent = locales.error.connection;
+        errorLabel.textContent = i18next.t('errors:connection');
         break;
       case 'loading':
         input.disabled = true;
